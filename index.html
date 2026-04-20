@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="食事ポスト">
+<title>食事ポスト生成 | 100kg男の人体実験</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    background: #15202b;
+    color: #fff;
+    margin: 0;
+    padding: 14px;
+    min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .container { max-width: 600px; margin: 0 auto; }
+  h1 {
+    font-size: 17px;
+    margin: 0 0 14px 0;
+    color: #1d9bf0;
+    text-align: center;
+  }
+  h1 span {
+    display: block;
+    font-size: 11px;
+    color: #8899a6;
+    font-weight: normal;
+    margin-top: 2px;
+  }
+  .meal-type-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+  .meal-type-tab {
+    flex: 1;
+    padding: 10px 6px;
+    background: #253341;
+    border: 1px solid #38444d;
+    color: #8899a6;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .meal-type-tab.active {
+    background: #1d9bf0;
+    border-color: #1d9bf0;
+    color: #fff;
+  }
+  label {
+    display: block;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #8899a6;
+    font-weight: bold;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    background: #253341;
+    border: 1px solid #38444d;
+    color: #fff;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #1d9bf0;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .chip {
+    padding: 8px 14px;
+    background: #253341;
+    border: 1px solid #38444d;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip.selected {
+    background: #1d9bf0;
+    border-color: #1d9bf0;
+  }
+  .chip-add {
+    padding: 8px 14px;
+    background: #253341;
+    border: 1px solid #38444d;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    color: #8899a6;
+  }
+  .chip-add:active {
+    background: #38444d;
+  }
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .radio {
+    flex: 1;
+    min-width: 70px;
+    padding: 10px;
+    background: #253341;
+    border: 1px solid #38444d;
+    border-radius: 10px;
+    font-size: 13px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .radio.selected {
+    background: #1d9bf0;
+    border-color: #1d9bf0;
+  }
+  .btn-generate {
+    width: 100%;
+    padding: 15px;
+    background: #1d9bf0;
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 20px;
+    cursor: pointer;
+  }
+  .btn-generate:active { background: #1a8cd8; }
+  .output-area {
+    margin-top: 20px;
+    padding: 16px;
+    background: #253341;
+    border-radius: 12px;
+    border: 1px solid #38444d;
+    display: none;
+  }
+  .output-area.show { display: block; }
+  .output-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 15px;
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .char-count {
+    font-size: 12px;
+    color: #8899a6;
+    margin-bottom: 12px;
+  }
+  .char-count.over { color: #f4212e; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-action {
+    flex: 1;
+    padding: 12px;
+    background: #38444d;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .btn-action.primary { background: #1d9bf0; }
+  .btn-action:active { opacity: 0.8; }
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1d9bf0;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; }
+  .hint {
+    font-size: 11px;
+    color: #8899a6;
+    margin-top: 4px;
+  }
+  .photo-reminder {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #253341;
+    border: 1px dashed #1d9bf0;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #1d9bf0;
+    text-align: center;
+  }
+  .section-title {
+    font-size: 12px;
+    color: #8899a6;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .preset-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .preset-btn {
+    padding: 10px 14px;
+    background: #253341;
+    border: 1px solid #38444d;
+    color: #fff;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .preset-btn:active {
+    background: #38444d;
+  }
+  .preset-btn .preset-title {
+    font-weight: bold;
+    color: #1d9bf0;
+    margin-bottom: 2px;
+  }
+  .preset-btn .preset-content {
+    font-size: 12px;
+    color: #8899a6;
+  }
+  .history-panel {
+    display: none;
+    margin-top: 14px;
+  }
+  .history-panel.show { display: block; }
+  .history-item {
+    padding: 12px;
+    background: #253341;
+    border: 1px solid #38444d;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .history-item:active {
+    background: #38444d;
+  }
+  .history-date {
+    font-size: 11px;
+    color: #8899a6;
+    margin-bottom: 4px;
+  }
+  .history-preview {
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 60px;
+    overflow: hidden;
+  }
+  .top-nav {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .top-nav button {
+    flex: 1;
+    padding: 8px;
+    background: #253341;
+    border: 1px solid #38444d;
+    color: #8899a6;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .top-nav button.active {
+    background: #1d9bf0;
+    border-color: #1d9bf0;
+    color: #fff;
+  }
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal.show {
+    display: flex;
+  }
+  .modal-content {
+    background: #15202b;
+    border: 1px solid #38444d;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 400px;
+    width: 100%;
+  }
+  .modal-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 12px;
+  }
+  .modal-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .section-container {
+    padding-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>食事ポスト生成<span>100kg男の人体実験</span></h1>
+
+  <!-- 上部ナビ -->
+  <div class="top-nav">
+    <button class="active" data-view="create">作成</button>
+    <button data-view="history">履歴</button>
+  </div>
+
+  <!-- 作成ビュー -->
+  <div id="view-create" class="section-container">
+    <!-- 食事タイプ -->
+    <div class="meal-type-tabs">
+      <div class="meal-type-tab active" data-type="morning">朝</div>
+      <div class="meal-type-tab" data-type="lunch">昼</div>
+      <div class="meal-type-tab" data-type="dinner">夜</div>
+      <div class="meal-type-tab" data-type="all">1日</div>
+    </div>
+
+    <!-- 単品入力 -->
+    <div id="m-single-area">
+      <!-- よく使う組み合わせ(プリセット) -->
+      <div class="section-title">よく使う組み合わせ</div>
+      <div class="preset-group" id="preset-combos">
+        <!-- JSで生成 -->
+      </div>
+
+      <label>食事内容</label>
+      <textarea id="m-content" placeholder="例: 自作プロテインスムージー"></textarea>
+
+      <div class="section-title">よく使う食材(タップで追加)</div>
+      <div class="chip-group" id="food-presets">
+        <!-- JSで生成 -->
+        <div class="chip-add" onclick="openFoodManage()">+ 管理</div>
+      </div>
+
+      <label>シーンタグ(任意)</label>
+      <div class="chip-group" id="m-scene">
+        <div class="chip" data-value="在宅日">在宅日</div>
+        <div class="chip" data-value="外出日">外出日</div>
+        <div class="chip" data-value="コンビニ">コンビニ</div>
+        <div class="chip" data-value="自炊">自炊</div>
+        <div class="chip" data-value="総菜">総菜</div>
+        <div class="chip" data-value="疲れた日">疲れた日</div>
+      </div>
+    </div>
+
+    <!-- 1日まとめ -->
+    <div id="m-all-area" style="display:none;">
+      <label>朝</label>
+      <input type="text" id="m-morning" placeholder="例: プロテインスムージー">
+      <label>昼</label>
+      <input type="text" id="m-lunch" placeholder="例: サラチキ+おにぎり+味噌汁">
+      <label>夜</label>
+      <input type="text" id="m-dinner" placeholder="例: プロテインバー+味噌汁">
+    </div>
+
+    <!-- 栄養情報(任意) -->
+    <div class="section-title">タンパク質(任意)</div>
+    <label>タンパク質 (g)</label>
+    <input type="number" id="m-protein" placeholder="30" inputmode="numeric">
+
+    <label>一言メモ(任意)</label>
+    <textarea id="m-comment" placeholder="必要なときだけ"></textarea>
+
+    <label>ハッシュタグ</label>
+    <div class="radio-group" id="m-hashtag">
+      <div class="radio selected" data-value="none">なし</div>
+      <div class="radio" data-value="main">固定</div>
+      <div class="radio" data-value="meal">食事系</div>
+      <div class="radio" data-value="both">両方</div>
+    </div>
+
+    <!-- 写真リマインダー -->
+    <div class="photo-reminder">📸 料理写真を添付すると拡散しやすくなります</div>
+
+    <button class="btn-generate" onclick="generateMeal()">ポストを生成</button>
+  </div>
+
+  <!-- 履歴ビュー -->
+  <div id="view-history" class="section-container" style="display:none;">
+    <div class="section-title">過去のポスト(最新10件)</div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- 出力エリア -->
+  <div class="output-area" id="output">
+    <div class="output-text" id="output-text"></div>
+    <div class="char-count" id="char-count"></div>
+    <div class="btn-row">
+      <button class="btn-action primary" onclick="copyText()">コピー</button>
+      <button class="btn-action" onclick="openX()">Xで開く</button>
+    </div>
+  </div>
+</div>
+
+<!-- 食材管理モーダル -->
+<div class="modal" id="food-modal">
+  <div class="modal-content">
+    <div class="modal-title">食材プリセット管理</div>
+    <label>追加する食材名</label>
+    <input type="text" id="new-food" placeholder="例: サラダチキン">
+    <button class="btn-action primary" style="width:100%;margin-top:10px;" onclick="addFood()">追加</button>
+
+    <div class="section-title">登録済み(タップで削除)</div>
+    <div class="chip-group" id="food-manage-list"></div>
+
+    <div class="modal-btn-row">
+      <button class="btn-action" onclick="closeFoodManage()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">コピーしました</div>
+
+<script>
+  // ==========================================
+  // カスタマイズ可能な設定
+  // ==========================================
+  const HASHTAGS = {
+    main: '#100kg男の人体実験 #ダイエット記録',
+    meal: '#ダイエットレシピ #減量飯 #ダイエット仲間と繋がりたい'
+  };
+
+  // デフォルトの食材プリセット(初回のみ、後はstorageで管理)
+  const DEFAULT_FOODS = [
+    'サラダチキン', 'プロテインバー', 'ゆで卵', '納豆',
+    '豆腐', 'もずく酢', 'キムチ', 'サラダ',
+    '味噌汁', 'おにぎり', 'プロテインスムージー'
+  ];
+
+  // よく使う組み合わせプリセット
+  const COMBO_PRESETS = [
+    {
+      title: 'コンビニ定番セット',
+      content: 'サラダチキン+おにぎり+味噌汁',
+      tags: ['コンビニ', '外出日']
+    },
+    {
+      title: '在宅日の夜軽めセット',
+      content: 'プロテインバー+味噌汁',
+      tags: ['在宅日']
+    },
+    {
+      title: '疲れた日の夜',
+      content: '豆腐+キムチ+もずく酢',
+      tags: ['在宅日', '疲れた日']
+    },
+    {
+      title: '自炊シンプル朝',
+      content: 'プロテインスムージー',
+      tags: ['自炊']
+    }
+  ];
+  // ==========================================
+
+  let currentMealType = 'morning';
+  let currentFoodPresets = [...DEFAULT_FOODS];
+  let history = [];
+
+  // ==========================================
+  // 初期化
+  // ==========================================
+  async function init() {
+    // 食材プリセットの読み込み
+    try {
+      if (window.storage) {
+        const result = await window.storage.get('food-presets').catch(() => null);
+        if (result && result.value) {
+          currentFoodPresets = JSON.parse(result.value);
+        }
+      }
+    } catch (e) {}
+    renderFoodPresets();
+
+    // 組み合わせプリセットの描画
+    renderComboPresets();
+
+    // 履歴読み込み
+    await loadHistory();
+    renderHistory();
+  }
+
+  function renderFoodPresets() {
+    const container = document.getElementById('food-presets');
+    const addBtn = container.querySelector('.chip-add');
+    // 既存のchipを削除(chip-add以外)
+    container.querySelectorAll('.chip').forEach(el => el.remove());
+    // 先頭に追加
+    currentFoodPresets.forEach(food => {
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.textContent = food;
+      chip.addEventListener('click', () => addFoodToContent(food));
+      container.insertBefore(chip, addBtn);
+    });
+  }
+
+  function renderComboPresets() {
+    const container = document.getElementById('preset-combos');
+    container.innerHTML = '';
+    COMBO_PRESETS.forEach(combo => {
+      const btn = document.createElement('div');
+      btn.className = 'preset-btn';
+      btn.innerHTML = `
+        <div class="preset-title">${combo.title}</div>
+        <div class="preset-content">${combo.content}</div>
+      `;
+      btn.addEventListener('click', () => applyCombo(combo));
+      container.appendChild(btn);
+    });
+  }
+
+  function applyCombo(combo) {
+    document.getElementById('m-content').value = combo.content;
+    // タグ解除してから設定
+    document.querySelectorAll('#m-scene .chip').forEach(chip => {
+      chip.classList.remove('selected');
+      if (combo.tags.includes(chip.dataset.value)) {
+        chip.classList.add('selected');
+      }
+    });
+  }
+
+  function addFoodToContent(food) {
+    const textarea = document.getElementById('m-content');
+    const current = textarea.value.trim();
+    if (!current) {
+      textarea.value = food;
+    } else {
+      textarea.value = current + '+' + food;
+    }
+  }
+
+  // 食材管理モーダル
+  function openFoodManage() {
+    const list = document.getElementById('food-manage-list');
+    list.innerHTML = '';
+    currentFoodPresets.forEach((food, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip selected';
+      chip.textContent = food + ' ×';
+      chip.addEventListener('click', () => removeFood(idx));
+      list.appendChild(chip);
+    });
+    document.getElementById('food-modal').classList.add('show');
+  }
+
+  function closeFoodManage() {
+    document.getElementById('food-modal').classList.remove('show');
+  }
+
+  async function addFood() {
+    const input = document.getElementById('new-food');
+    const value = input.value.trim();
+    if (!value) return;
+    if (!currentFoodPresets.includes(value)) {
+      currentFoodPresets.push(value);
+      await saveFoodPresets();
+      renderFoodPresets();
+      openFoodManage(); // 再描画
+    }
+    input.value = '';
+  }
+
+  async function removeFood(idx) {
+    currentFoodPresets.splice(idx, 1);
+    await saveFoodPresets();
+    renderFoodPresets();
+    openFoodManage(); // 再描画
+  }
+
+  async function saveFoodPresets() {
+    try {
+      if (window.storage) {
+        await window.storage.set('food-presets', JSON.stringify(currentFoodPresets));
+      }
+    } catch (e) {}
+  }
+
+  // ==========================================
+  // 上部ナビ(作成/履歴)
+  // ==========================================
+  document.querySelectorAll('.top-nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.top-nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('view-create').style.display = 'none';
+      document.getElementById('view-history').style.display = 'none';
+      document.getElementById('view-' + btn.dataset.view).style.display = 'block';
+      document.getElementById('output').classList.remove('show');
+      if (btn.dataset.view === 'history') {
+        renderHistory();
+      }
+    });
+  });
+
+  // ==========================================
+  // 食事タイプタブ
+  // ==========================================
+  document.querySelectorAll('.meal-type-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.meal-type-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentMealType = tab.dataset.type;
+      if (currentMealType === 'all') {
+        document.getElementById('m-single-area').style.display = 'none';
+        document.getElementById('m-all-area').style.display = 'block';
+      } else {
+        document.getElementById('m-single-area').style.display = 'block';
+        document.getElementById('m-all-area').style.display = 'none';
+      }
+    });
+  });
+
+  // チップ(複数選択)
+  document.querySelectorAll('#m-scene .chip').forEach(item => {
+    item.addEventListener('click', () => item.classList.toggle('selected'));
+  });
+
+  // ラジオ(単一選択)
+  document.querySelectorAll('.radio-group').forEach(group => {
+    group.querySelectorAll('.radio').forEach(radio => {
+      radio.addEventListener('click', () => {
+        group.querySelectorAll('.radio').forEach(r => r.classList.remove('selected'));
+        radio.classList.add('selected');
+      });
+    });
+  });
+
+  function getSelectedChips(groupId) {
+    return Array.from(document.querySelectorAll(`#${groupId} .chip.selected`))
+      .map(el => el.dataset.value);
+  }
+
+  function getSelectedRadio(groupId) {
+    const el = document.querySelector(`#${groupId} .radio.selected`);
+    return el ? el.dataset.value : 'none';
+  }
+
+  function showOutput(text) {
+    const outputText = document.getElementById('output-text');
+    const charCount = document.getElementById('char-count');
+    const output = document.getElementById('output');
+    outputText.textContent = text;
+    const count = [...text].length;
+    charCount.textContent = `${count}/140文字`;
+    charCount.classList.toggle('over', count > 140);
+    output.classList.add('show');
+    setTimeout(() => output.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+
+  // ==========================================
+  // ポスト生成
+  // ==========================================
+  function generateMeal() {
+    const comment = document.getElementById('m-comment').value.trim();
+    const hashtagChoice = getSelectedRadio('m-hashtag');
+    const protein = document.getElementById('m-protein').value;
+
+    let text = '';
+    const typeLabel = { morning: '朝', lunch: '昼', dinner: '夜' }[currentMealType] || '';
+
+    if (currentMealType === 'all') {
+      const morning = document.getElementById('m-morning').value.trim();
+      const lunch = document.getElementById('m-lunch').value.trim();
+      const dinner = document.getElementById('m-dinner').value.trim();
+
+      text = '今日の食事\n';
+      if (morning) text += `朝 ${morning}\n`;
+      if (lunch) text += `昼 ${lunch}\n`;
+      if (dinner) text += `夜 ${dinner}\n`;
+    } else {
+      const content = document.getElementById('m-content').value.trim();
+      const scenes = getSelectedChips('m-scene');
+
+      text = `${typeLabel}メシ\n${content}\n`;
+      if (scenes.length > 0) {
+        text += scenes.join(' / ') + '\n';
+      }
+    }
+
+    // タンパク質情報
+    if (protein) {
+      text += `タンパク質${protein}g\n`;
+    }
+
+    if (comment) text += '\n' + comment + '\n';
+
+    // ハッシュタグ
+    let tagText = '';
+    if (hashtagChoice === 'main') tagText = HASHTAGS.main;
+    else if (hashtagChoice === 'meal') tagText = HASHTAGS.meal;
+    else if (hashtagChoice === 'both') tagText = HASHTAGS.main + ' ' + HASHTAGS.meal;
+
+    if (tagText) text += '\n' + tagText;
+
+    const finalText = text.trim();
+    showOutput(finalText);
+    saveToHistory(finalText);
+  }
+
+  // ==========================================
+  // 履歴管理
+  // ==========================================
+  async function loadHistory() {
+    try {
+      if (window.storage) {
+        const result = await window.storage.get('meal-history').catch(() => null);
+        if (result && result.value) {
+          history = JSON.parse(result.value);
+        }
+      }
+    } catch (e) {
+      history = [];
+    }
+  }
+
+  async function saveToHistory(text) {
+    const item = {
+      text: text,
+      date: new Date().toISOString()
+    };
+    history.unshift(item);
+    if (history.length > 10) history = history.slice(0, 10);
+    try {
+      if (window.storage) {
+        await window.storage.set('meal-history', JSON.stringify(history));
+      }
+    } catch (e) {}
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '';
+    if (history.length === 0) {
+      list.innerHTML = '<div style="color:#8899a6;text-align:center;padding:20px;">履歴はまだありません</div>';
+      return;
+    }
+    history.forEach((item) => {
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      const date = new Date(item.date);
+      const dateStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+      div.innerHTML = `
+        <div class="history-date">${dateStr}</div>
+        <div class="history-preview">${escapeHtml(item.text)}</div>
+      `;
+      div.addEventListener('click', () => {
+        showOutput(item.text);
+      });
+      list.appendChild(div);
+    });
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  // ==========================================
+  // コピー & X投稿
+  // ==========================================
+  function copyText() {
+    const text = document.getElementById('output-text').textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showToast).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    showToast();
+  }
+
+  function showToast() {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1500);
+  }
+
+  function openX() {
+    const text = document.getElementById('output-text').textContent;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  }
+
+  // 起動
+  init();
+</script>
+</body>
+</html>
