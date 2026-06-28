@@ -388,10 +388,13 @@
     <div id="m-all-area" style="display:none;">
       <label>朝</label>
       <input type="text" id="m-morning" placeholder="例: プロテインスムージー">
+      <div class="chip-group" id="food-presets-morning"></div>
       <label>昼</label>
-      <input type="text" id="m-lunch" placeholder="例: サラチキ+おにぎり+味噌汁">
+      <input type="text" id="m-lunch" placeholder="例: グリルチキン+おにぎり+味噌汁">
+      <div class="chip-group" id="food-presets-lunch"></div>
       <label>夜</label>
       <input type="text" id="m-dinner" placeholder="例: プロテインバー+味噌汁">
+      <div class="chip-group" id="food-presets-dinner"></div>
     </div>
 
     <!-- 栄養情報(任意) -->
@@ -406,8 +409,10 @@
     <div class="radio-group" id="m-hashtag">
       <div class="radio selected" data-value="none">なし</div>
       <div class="radio" data-value="main">固定</div>
-      <div class="radio" data-value="meal">食事系</div>
-      <div class="radio" data-value="both">両方</div>
+      <div class="radio" data-value="meal">減量系</div>
+      <div class="radio" data-value="cooking">料理系</div>
+      <div class="radio" data-value="mendaki">男飯系</div>
+      <div class="radio" data-value="both">減量+固定</div>
     </div>
 
     <!-- 写真リマインダー -->
@@ -458,12 +463,14 @@
   // ==========================================
   const HASHTAGS = {
     main: '#100kg男の人体実験 #ダイエット記録',
-    meal: '#ダイエットレシピ #減量飯 #ダイエット仲間と繋がりたい'
+    meal: '#ダイエットレシピ #減量飯 #ダイエット仲間と繋がりたい',
+    cooking: '#料理 #おうちごはん #自炊 #今日のごはん #手料理',
+    mendaki: '#男飯 #自炊男子 #筋トレ飯 #高タンパク'
   };
 
   // デフォルトの食材プリセット(初回のみ、後はstorageで管理)
   const DEFAULT_FOODS = [
-    'サラダチキン', 'プロテインバー', 'ゆで卵', '納豆',
+    'グリルチキン', 'チキンサンド', 'プロテインバー', 'ゆで卵', '納豆',
     '豆腐', 'もずく酢', 'キムチ', 'サラダ',
     '味噌汁', 'おにぎり', 'プロテインスムージー'
   ];
@@ -510,6 +517,13 @@
         }
       }
     } catch (e) {}
+    // 新しく追加した定番食材を不足していれば補う
+    ['グリルチキン', 'チキンサンド'].forEach(food => {
+      if (!currentFoodPresets.includes(food)) {
+        currentFoodPresets.unshift(food);
+      }
+    });
+    await saveFoodPresets();
     renderFoodPresets();
 
     // 組み合わせプリセットの描画
@@ -533,6 +547,30 @@
       chip.addEventListener('click', () => addFoodToContent(food));
       container.insertBefore(chip, addBtn);
     });
+
+    // 1日タブの朝・昼・夜にも食材ボタンを生成
+    ['morning', 'lunch', 'dinner'].forEach(meal => {
+      const box = document.getElementById('food-presets-' + meal);
+      if (!box) return;
+      box.innerHTML = '';
+      currentFoodPresets.forEach(food => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = food;
+        chip.addEventListener('click', () => addFoodToInput('m-' + meal, food));
+        box.appendChild(chip);
+      });
+    });
+  }
+
+  function addFoodToInput(inputId, food) {
+    const input = document.getElementById(inputId);
+    const current = input.value.trim();
+    if (!current) {
+      input.value = food;
+    } else {
+      input.value = current + '+' + food;
+    }
   }
 
   function renderComboPresets() {
@@ -730,6 +768,8 @@
     let tagText = '';
     if (hashtagChoice === 'main') tagText = HASHTAGS.main;
     else if (hashtagChoice === 'meal') tagText = HASHTAGS.meal;
+    else if (hashtagChoice === 'cooking') tagText = HASHTAGS.cooking;
+    else if (hashtagChoice === 'mendaki') tagText = HASHTAGS.mendaki;
     else if (hashtagChoice === 'both') tagText = HASHTAGS.main + ' ' + HASHTAGS.meal;
 
     if (tagText) text += '\n' + tagText;
